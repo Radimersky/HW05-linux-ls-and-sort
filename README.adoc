@@ -1,0 +1,410 @@
+---
+title: "HW05: ls + sort"
+layout: "homework"
+list-of-files: [main.c, common.c, common.h, bonus.txt]
+publish: now
+deadline-early: "2018-05-19 24:00"
+deadline-final: "2018-05-22 24:00"
+author: "Jan Tušil"
+editor: Peter Stanko
+editor-email: stanko@mail.muni.cz
+---
+
+= HW05: ls + sort
+
+Doplnění zadání:
+
+* _zatím nic_
+
+== Představení úkolu
+
+Jen stěží si představíme život bez příkazové řádky. Jak je krásná a elegantní! 
+Přitom většina standardních nástrojů je velice jednoduchá. V tomto POSIXově zaměřeném úkolu
+budeme vytvářet nástroj, schopný nahradit utilitu link:https://linux.die.net/man/1/ls[`ls`].
+Během toho se seznámíme s některými funkcemi, které **POSIX** nabízí.
+
+[.alert.alert-info]
+icon:info[role="mr-2"] Přestože je úkol zaměřen na rozhraní POSIX,
+můžete jej implementovat i na +++<span class="fab fa-windows"></span>+++ Windows. Další informace naleznete
+na konci zadání.
+
+Na příkladu si ukážeme, co vlastně všechno unixová utilita `ls` vypisuje:
+
+[source]
+----
+[xtusil@aisa]$ ls -la
+total 41280
+drwxr-xr-x.   5 jenda jenda     4096 Nov 21 16:44 .
+drwx------. 117 jenda jenda    12288 Nov 21 13:01 ..
+-rw-rw-r--.   1 jenda jenda    60192 Nov 11 10:49 4shift-reduce.pdf
+-rw-rw-r--.   1 jenda jenda   283788 Nov 11 10:50 acl11yue.pdf
+drwxr-xr-x.   2 jenda jenda     4096 Oct 31 08:51 bitcoin_2013
+-rw-------.   1 jenda jenda     1458 Oct 31 08:51 bitcoin_2013_soubory.zip
+-rw-rw-r--.   1 jenda jenda     4705 Sep 19  2012 ca_cert.pem
+-rw-rw-r--.   1 jenda jenda   202998 Nov  4 09:29 cfg3.pdf
+-rw-rw-r--.   1 jenda jenda   174017 Nov 11 09:58 c-Grammar.pdf
+-rw-rw-r--.   1 jenda jenda   137954 Nov  5 12:23 CLEF2012wn-PAN-SuchomelEt2012.pdf
+-rw-rw-r--.   1 jenda jenda    11368 Nov  5 10:42 cv4-priprava-ERD.pdf
+-rw-rw-r--.   1 jenda jenda    81381 Nov 11 15:32 DDJ_Oct_1999.pdf
+-rwxrwxr-x.   1 jenda jenda 40197971 May 27 13:07 eagle-lin-6.4.0.run
+-rw-------.   1 jenda jenda   182749 Nov  2 17:30 ft.pdf
+-rw-------.   1 jenda jenda   136484 Oct 27 10:06 irregularrules02.pdf
+-rw-rw-r--.   1 jenda jenda   100066 Nov 19 15:57 LEBEG1.pdf
+-rw-rw-r--.   1 jenda jenda    19468 Nov  8 08:26 Mail0279.PDF
+-rw-rw-r--.   1 jenda jenda    17220 Nov  8 08:26 Mail0280.PDF
+-rw-rw-r--.   1 jenda jenda    21050 Nov  8 08:26 Mail0281.PDF
+-rw-rw-r--.   1 jenda jenda    14266 Nov  8 08:26 Mail0282.PDF
+drwxr-xr-x.   2 jenda jenda     4096 Aug 31 22:13 .mediaartlocal
+-rw-rw-r--.   1 jenda jenda    64926 Nov  7 08:06 PB154-PrikladySQL-zadani.pdf
+drwxr-xr-x.   2 jenda jenda     4096 Oct 23 22:56 pipelight
+-rw-------.   1 jenda jenda     1921 Oct 23 16:02 pipelight.tar.gz
+-rw-rw----.   1 root  root         0 Nov 21 16:38 secret_file
+-rw-rw-r--.   1 jenda jenda    88580 Nov 11 09:51 slajdy8.pdf
+-rw-rw-r--.   1 jenda jenda   393289 Nov 19 13:29 stein.pdf
+----
+
+První řádek informuje uživatele o faktu, že obsah adresáře se rozkládá na `41280` blocích.
+Od druhého řádku níže vidíme několik sloupců. První informuje o *módu souboru*
+(položka `st_mode` struktury `stat`, viz níže). Druhý sloupec říká,
+kolik *pevných odkazů* na soubor v systému existuje. Ve třetím a čtvrtém sloupci nalezneme
+*vlastníka* a *skupinu* souboru, pátý informuje o *velikosti* souboru v bajtech.
+Šestý soubor reprezentuje *čas poslední modifikace* souboru a sedmý teprve zobrazuje
+jeho *název*.
+Přepínač `-a` zajistil, že byly vypsány i *skryté soubory* (začínající tečkou). 
+Přepínač `-A` by udělal totéž s vynecháním `'.'` a `'..'`.
+
+== Zadání
+
+Výstup našeho programu bude podobný tomu, jaký získáme spuštěním `ls -la`.
+Zajímat nás budou pouze sloupce (bez úvodního řádku), uživatel si však může zvolit,
+které sloupce zobrazí a v jakém pořadí. Úkolem je tedy porozhlédnout se po
+*aktuálním pracovním adresáři* `(opendir(3))` a pro všechny zajímavé soubory
+`(readdir(3))` vypsat, co o nich víme `(stat(3))`, avšak až poté, co je *seřadíme `(qsort(3))`*.
+Soubory budou seřazeny podle jména.
+
+Jednou z informací, kterou umí `ls` zjistit, je jméno uživatele (a skupiny),
+který (která) soubor vlastní.
+Informaci o uživateli (skupině) zjistíte pomocí funkce `getpwuid(3)` `(getgrnam(3))`.
+
+Pokud nějaká z funkcí selže, je potřeba o tom uživatele informovat.
+Knihovna si pamatuje kód poslední chyby a tak stačí voláním `perror(3)` vypsat chybovou
+hlášku a jít dál (pokud je to možné) nebo skončit.
+Takovéto chování sice není testováno, ale patří k dobrému programátorskému vychování.
+
+Pro jednoduchost bude stačit, aby naše `ls` uměla vypisovat obyčejné soubory a adresáře.
+Symbolické linky ani další speciální soubory není potřeba řešit.
+Hlavní funkci programu vložte do souboru `main.c`,
+ostatní můžete libovolně podle svého uvážení umístit do `main.c` či `common.c`, 
+můžete také používat soubor `common.h`.
+
+[.alert.alert-warning]
+icon:exclamation[role="mr-2"] Na proměnné prostředí (jako například `CWD`)
+se nespoléhejte.
+
+== Požadavky
+
+Implementujte utilitu na výpis souborů aktuálního adresáře,
+která podporuje parametry předávané na příkazové řádce (`./my_ls -la`)
+
+[source]
+----
+-a, --all
+-A, --almost-all
+--show=SHOW_STRING
+----
+
+přičemž výstup odpovídá dlouhému výstup unixové utility `ls`.
+
+[source]
+----
+ls -l
+----
+
+Žádné jiné přepínače nebudou testovány, takže můžete podle libosti naimplementovat další.
+Například takový
+
+[source]
+----
+-h, --help
+----
+
+může být užitečný.
+
+**Parametry se mohou na řádce vyskytnout v jakémkoliv pořadí.**
+
+=== Výběr souborů pro zobrazení
+
+V UNIXu jsou soubory, začínající znakem `.` (tečkou), považovány za skryté. 
+Takové standardně nebudou vypsány. Použití přepínače `-A`
+
+[source]
+----
+$ ls -lA
+----
+
+způsosobí vypsání všech souborů s výjimkou `.` a `..`. 
+Pokud chce uživatel vypsat úplně všechny soubory, využije přepínač `-a`.
+
+[source]
+----
+$ ls -la
+----
+
+[.alert.alert-info]
+icon:info[role="mr-2"] Skrytí souboru není žádná bezpečnostní funkce.
+Slouží pouze k tomu, aby se nám mezi našimi soubory motaly nejrůznější cache a konfigurace.
+
+=== Výběr sloupců pro zobrazení
+
+Přepínač
+
+[source]
+----
+--show=SHOW_STRING
+----
+
+vybírá sloupce, které budou zobrazeny.
+`SHOW_STRING` je řetězec, který se skládá z následujících písmen:
+
+[source]
+----
+R - přístupová práva (access Rights).
+L - počet pevných odkazů (hardLinks)
+U - uživatelské jméno vlastníka (Username)
+G - jméno vlastnící skupiny (Groupname)
+S - velikost (Size)
+M - čas poslední změny (last Modification time)
+N - název souboru (file Name)
+I - číslo I-uzlu (I-node, česky "inoda")
+----
+
+V zadaném řetězci smí být každé písmeno nejvýše jednou.
+Můžete očekávat, že pokud dostanete řetězec, tento bude vyhovující a bude obsahovat alespoň buď
+a) název souboru nebo
+b) číslo I-uzlu.
+Pokud tento parametr nebyl předán, použijte `-–show=RLUGSMN` (standardní chování `ls -l`).
+
+
+==== Šířka sloupce
+
+Každý sloupec je tak široký, jak široká je jeho nejširší buňka;
+zbylé místo je vyplněno mezerami. Mezi sloupci je také jedna mezera navíc
+(text nesplývá dohromady).
+Za posledním sloupcem (obvykle název souboru) mezery nejsou
+(Toto chování odpovídá standardní utilitě `ls`).
+V případě pochybností se řiďte referenční implementací.
+
+
+==== Vlastník souboru
+
+Obecně může nastat situace, kdy nebude možné převést číslo vlastníka souboru na uživatelské jméno
+(selhání `getpwuid()`).
+V takovém případě je vhodné vypsat místo jména alespoň to číslo a informovat uživatele o tom,
+co se vlastně stalo (viz níže).
+
+==== Číslo I-uzlu
+
+V unixových souborových systémech není soubor ztotožněn s jeho jménem, ale může mít více jmen.
+Jednoznačným identifikátorem souboru pak není jeho jméno, ale číslo tzv. *I-uzlu*.
+Toto číslo není obvykle utilitou `ls` vypisováno; pro jeho výpis je potřeba uvést přepínač `-i`.
+
+[source]
+----
+$ ls -i
+----
+
+Více informací o konceptech unixových souborových systémů lze získat ve
+specializovaných předmětech či
+link:https://www.thegeekdiary.com/unix-file-basics-inode-soft-vs-hard-link-device-files[online].
+
+==== Přístupová práva (aneb mód souboru)
+Informace o *přístupových právech* (módu) souboru se nachází ve struktuře `struct stat`,
+položka `st_mode`.
+Toto číslo převedete na zobrazitelný řetězec pomocí funkce, kterou najdete v přiloženém souboru.
+
+[source,c]
+----
+void mode_to_string(mode_t mode, char *str);
+----
+
+Výstup této funkce je podobný, jako řetězec vypisovaný utilitou `ls`.
+Jediný vyznamější rozdíl je, že skutečná `ls` přidává na konec ještě jeden symbol,
+související s rozšířenými právy *(ACL)*. Nejčastěji tam můžete vidět tečku.
+
+==== Čas modifikace souboru
+
+Čas modifikace najdete taktéž uvnitř struktury `stat`, reprezentován členským prvkem `st_mtim`.
+Tento prvek v původním POSIX standardu neexistoval a z důvodu kompatability
+je třeba před includováním `stat.h` definovat makro `_GNU_SOURCE`.
+
+[source,c]
+----
+#define _GNU_SOURCE
+#include <sys/stat.h>
+----
+
+Pro výpis data a času použijte funkci `strftime(3)` s formátovacím řetězcem `%b %e %Y %R`.
+Při testování pozor, v českém prostředí se `strftime(3)` chová jinak, než v anglickém.
+
+Pozor, struktura `stat` obsahuje prvek `st_mtime` (s 'e' na konci) typu `time_t` (Posix).
+Typ `time_t` určuje čas s přesností na sekundy.
+Posix 2008 pak nově přidává prvek `st_mtim` (bez 'e' na konci) typu `struct timespec`.
+Struktura `timespec` vypadá přibližně takto:
+
+[source,c]
+----
+struct timespec
+{
+    long int tv_sec;  // sekundy (podobný význam jako time_t)
+    long int tv_nsec; // nanosekundy
+};
+----
+
+==== Zarovnání sloupců
+
+Skutečná `ls` zarovnává sloupce s číselnou hodnotou vpravo, zatímco sloupce s
+textovou hodnotou vlevo. Je to tak přirozené; tohoto schématu se také budeme držet.
+
+==== Řazení
+Řazení podle názvu souboru neprobíhá čistě lexikograficky.
+U skrytých souborů (kromě `.` a `..`) se tečka na začátku při řazení ignoruje.
+Pouze pokud mají dva soubory stejný název až na to, že jeden začíná tečkou a druhý nikoli,
+je dříve vypsán ten bez tečky. Obdobné chování se vztahuje i k velikosti písmen (vyzkoušejte).
+Pokud si nečím nebudete jisti, řiďte se tím, jak se chová referenční implementace.
+Nebudou testovány žádné zde nepopsané zákeřnosti.
+
+==== Chování při chybách
+
+Chování při chybách nebude testováno. Pokud některé ze systémových volání selže,
+před ukončením programu informujte uživatele o chybě (`stderr`) a ukliďte po sobě paměť,
+otevřené soubory a další prostředky. Výstup programu ani jeho návratová hodnota nebude testován,
+avšak pokud chyba neznemožňuje běh programu, je vhodné po vypsání chybové hlášky pokračovat v běhu.
+
+'''
+
+== Bonus
+
+Standardní utilita `ls` řadí soubory podle jména.
+Chce-li uživatel seřadit výstup podle jiného sloupce, použije utilitu `sort`.
+Jako bonus rozšíříme naší utilitu `ls` tak, aby dokázala řadit soubory
+podle uživatelem zvolených sloupců. Za tímto účelem přidáme programu přepínač
+
+[source]
+----
+--sort-by=SORT_STRING
+----
+
+kde řetězec `SORT_STRING` se skládá ze stejných znaků, jako řetězec `SHOW_STRING`
+(tedy `RLUGSMNI`), a může mít proměnlivou délku (`1` až `8` znaků).
+Řadit je možné pouze podle zobrazovaných atributů a názvu souboru.
+Řazení probíhá na úrovni přesnosti, kterou vám poskytne volání systému (např. `stat()`),
+nikoliv na úrovni přesnosti výpisu. Například:
+
+[source]
+----
+$ touch b; touch a
+----
+
+způsobí, že soubor `b` bude mít o něco málo dřívější čas modifikace, než soubor `a`.
+O tom se lze přesvědčit pomocí GNU `ls`, která říká:
+
+[source]
+----
+$ ls -l --full-time
+-rw-rw-r--.   1 jenda jenda     0 2013-11-24 16:16:53.719698251 +0100 a
+-rw-rw-r--.   1 jenda jenda     0 2013-11-24 16:16:53.717698281 +0100 b
+----
+
+Tudíž očekávaný výstup řazení podle času poslední změny bude:
+
+[source]
+----
+$ ./simple_ls -A --sort-by=M
+-rw-r--r-- 1 jenda jenda 0 Dec 25 2013 11:17 b
+-rw-r--r-- 1 jenda jenda 0 Dec 25 2013 11:17 a
+----
+
+Jak je vidět z příkladů, řadíme vždy od nejnižší hodnoty
+(tedy od nejstaršího souboru k nejmladšímu). Pokud však není možné jednoznačně určit,
+který soubor vypsat dříve, soubory, kterých se to týká,
+budou vzájemně seřazeny podle jejich názvu (přestože nemusí být vypsán).
+
+[source]
+----
+$ ./simple_ls
+drwxr-xr-x 2 jenda jenda 4096 Dec 25 2013 21:51 .
+drwxrwxr-x 3 jenda jenda 4096 Dec 25 2013 12:36 ..
+-rw-r--r-- 1 jenda jenda    0 Dec 25 2013 11:17 a
+-rw-r--r-- 1 jenda jenda    0 Dec 25 2013 11:17 b
+----
+
+To se týká i případu, pokud nejsou „řadící“ atributy specifikovány.
+Tedy pokud uživatel nezadá řetězec, podle kterého řadit, výstup bude seřazen podle jména souboru.
+Můžete předpokládat, že každý z řadících atributů bude zároveň vypisován.
+
+
+==== Proces řazení
+
+Mějme nějakou skupinu souborů. Seřazení této skupiny podle více atributů (`-–sort-by=ABCDE`)
+znamená rozdělit soubory do skupin podle hodnoty prvního atributu `A`,
+tyto skupiny podle atributu `A` seřadit a v rámci skupin seřadit soubory
+podle zbylých atributů (`-–sort-by=BCDE`).
+
+Formálněji řečeno, soubor `S` bude vypsán před souborem `T`, pokud mají prvních `k`
+atributů shodných a zároveň soubor `S` je před souborem `T` podle atributu na pozici `k+1`.
+Toto k může být `0` (v případě, že je možné soubory rozlišit podle prvního atributu).
+Také může být rovno počtu řadících atributů, v takovém případě nelze pomocí
+daných atributů jednoznačně určit, který soubor bude první.
+Tehdy se použije ještě název souboru jako „implicitní“ řadící argument.
+
+Je to podobné, jako seřadit seznam lidí podle příjmení, jména a data narození.
+
+[source]
+----
+Příjm.  Jméno  Dat.
+___________________
+Adamec  Michal 1968
+Novák   Josef  1992
+Novák   Petr   1957
+Piškot  Adam   1923
+Piškot  Adam   2002
+___________________
+----
+
+==== Řazení podle jména uživatele/skupiny
+
+K lexikografickému seřazení můžete použít například `strcmp(3)`.
+
+==== Řazení podle módu souboru (přístupových práv)
+
+Vhodné je seřazení pomocí strcmp(), nebude testováno.
+
+==== Organizace zdrojových kódů
+
+Bonus bude implementován jako součást hlavního programu.
+Bonusové testy se spustí, pokud bude v repozitáři přítomen soubor `bonus.txt`.
+
+== Informace pro uživatele systému Windows
+
+Úkol je zaměřen na rozhraní POSIX, kterého starší verzi +++<span class="fab fa-windows"></span>+++  Windows podporuje.
+Nicméně některé funkce nejsou dostupné nebo fungují jinak, proto doporučujeme
+uživatelům úkol vypracovat některým z těchto způsobú:
+
+* povolte jsi **Windows Subsystem for Linux** (link:/pb071/tutorials/ubuntu-on-windows/index.html[tutoriál zde]),
+  pak můžete používat nástroje pro +++<span class="fab fa-linux"></span>+++  Linux včetně valgrindu přímo z Windows
+* stáhněte a virtuální stroj s Ubuntu pro VirtualBox (link:/pb071/tutorials/virtual-machine/index.html[tutoriál zde]),
+  získáte tak plnohodnotný Linuxový systém bez nutnosti odinstalovat nebo přepínat +++<span class="fab fa-windows"></span>+++  Windows
+
+* úkol můžete také vypracovat na fakultních počítačích Nymfe v PC Hale nebo na serveru Aisa
+
+Nezapomeňte, že před každým odevzdáním máte podle organizačních informací
+povinnost zkusit si úkol zkompilovat na serveru Aisa.
+
+== Poznámky
+
+Nebojte se využít rozšířující funkce jako `strdup()`, `realpath()`
+nebo `qsort_r(3)`. K tomuto účelu slouží makra jako `_GNU_SOURCE`,
+definovaná před inkludováním hlavičkového souboru, obsahující požadovanou funkci.
+Více informací najdete ve `feature_test_macros(7)`.
+
+Referenční implementaci naleznete na aise v `/home/kontr/hw05/ls`

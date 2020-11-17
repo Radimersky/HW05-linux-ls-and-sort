@@ -1,0 +1,1 @@
+/usr/bin/cc  -std=c99 -pedantic -Wall -Wextra -Werror -g  -rdynamic CMakeFiles/hash.dir/main.c.o CMakeFiles/hash.dir/common.c.o  -o hash 

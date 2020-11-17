@@ -1,0 +1,1 @@
+void mode_to_string(mode_t mode, char str[11]);
